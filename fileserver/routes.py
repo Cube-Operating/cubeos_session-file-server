@@ -319,8 +319,15 @@ def get_file(id):
 
         expiry, pool_name = row
 
-        path = files.get_file_path(pool_name, id)
-        response = flask.make_response(path.read_bytes())
+        response = flask.make_response(files.read(pool_name, id))
+
+        # CubeOS: downloaded files go soon after (EXPIRY_AFTER_DOWNLOAD), not at their full expiry.
+        if getattr(config, "EXPIRY_AFTER_DOWNLOAD", None):
+            cur.execute(
+                "UPDATE files SET expiry = LEAST(expiry, NOW() + %s) WHERE id = %s RETURNING expiry",
+                (config.EXPIRY_AFTER_DOWNLOAD, id),
+            )
+            expiry = cur.fetchone()[0]
 
         response.expires = expiry
 
@@ -352,8 +359,7 @@ def get_file_old(id):
             app.logger.debug("File '{}' does not exist".format(id))
             return error_resp(http.NOT_FOUND)
 
-        path = files.get_file_path(row[1], id)
-        return json_resp({"status_code": 200, "result": utils.encode_base64(path.read_bytes())})
+        return json_resp({"status_code": 200, "result": utils.encode_base64(files.read(row[1], id))})
 
 
 @app.get("/file/<id>/info")
@@ -368,7 +374,7 @@ def get_file_info(id):
         size = None
         if row:
             try:
-                size = files.get_file_path(row[2], id).stat().st_size
+                size = files.size(row[2], id)
             except FileNotFoundError:
                 app.logger.warning(f"File {id} in database not found on disk!")
                 row = None
@@ -424,7 +430,7 @@ def extend_file_expiry(id):
         if row:
             uploaded, expiry, pool_name = row
             try:
-                size = files.get_file_path(pool_name, id).stat().st_size
+                size = files.size(pool_name, id)
             except FileNotFoundError:
                 app.logger.warning(f"File {id} in database not found on disk!")
                 row = None

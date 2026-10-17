@@ -42,6 +42,21 @@ MAX_FILE_TTL = None
 pgsql_connect_opts = {"dbname": "sessionfiles"}
 
 
+# CubeOS: store file contents in an S3-compatible bucket (Cloudflare R2) instead of on this server's
+# disk.  When R2_BUCKET is set, files go to s3://R2_BUCKET/<pool>/<prefix>/<id> through R2_ENDPOINT
+# (https://<account id>.r2.cloudflarestorage.com) with the given access keys; FILE_BASE_PATH is then
+# unused.  The bucket should also carry a lifecycle rule deleting objects after 3 days, as a backstop
+# for the expiry below.
+R2_BUCKET = None
+R2_ENDPOINT = None
+R2_ACCESS_KEY_ID = None
+R2_SECRET_ACCESS_KEY = None
+
+# CubeOS: once a file has been downloaded, it expires this long afterwards (if that is sooner than
+# its expiry), so it is gone soon after it is received while the recipient's other devices (and the
+# sender's) still have time to fetch it.  None keeps the normal expiry.
+EXPIRY_AFTER_DOWNLOAD = None
+
 # Path where file contents are stored on disk.  Within this directory are storage subdirectories:
 # - 000 through 999 when using backwards compat IDs.  These are the *last* three digits of the
 #   integer file ID (with leading 0s for IDs under 100).

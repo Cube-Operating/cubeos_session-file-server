@@ -26,8 +26,7 @@ def _expire_files():
             )
             for row in cur:
                 removed += 1
-                p = files.get_file_path(row[1], row[0])
-                p.unlink(missing_ok=True)
+                files.delete(row[1], row[0])
 
     if removed > 0:
         app.logger.info(f"Deleted {removed} expired files")
