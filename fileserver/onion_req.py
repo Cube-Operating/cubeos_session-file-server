@@ -2,6 +2,7 @@ from flask import request, abort
 import json
 
 from .web import app
+from . import config
 from . import crypto, http, utils
 from .subrequest import make_subrequest
 
@@ -106,10 +107,12 @@ def handle_v4_onionreq_plaintext(body):
 def decrypt_onionreq():
     for i in range(len(crypto._server_pubkey_bytes)):
         try:
+            # CubeOS: room for MAX_FILE_SIZE uploads (libsession's parser defaults to 10 MiB)
             return OnionReqParser(
                 crypto._server_pubkey_bytes[i],
                 crypto._server_privkey_bytes[i],
-                request.data)
+                request.data,
+                max_size=max(10485760, int(config.MAX_FILE_SIZE * 1.5)))
         except Exception as e:
             pass
 
